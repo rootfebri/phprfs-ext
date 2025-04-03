@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2207
-exec 2>/dev/null
 
 _SCRIPT=$0
 
