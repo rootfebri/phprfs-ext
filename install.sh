@@ -54,12 +54,22 @@ str_ends() {
     return 1
   fi
 }
+call_php() {
+  local php=$1
+  local code=$2
+  local output
+  output=$($php -r "$code" 2>/dev/null | grep -v "PHP Warning" | grep -v "Warning:")
+  printf "%s" "$(tr -d '\r\n' <<<"$output")"
+}
+dir_so() {
+  call_php "$1" 'echo ini_get("extension_dir");'
+}
+dir_ini() {
+  call_php "$1" 'echo PHP_CONFIG_FILE_SCAN_DIR;'
+}
 php_version() {
   local php=$1
-  local version
-
-  version=$($php -r 'echo PHP_VERSION;' | tr -d '\r\n')
-  printf "%s" "$version"
+  call_php "$php" 'echo PHP_VERSION;'
 }
 dot_version() {
   local version=$1
@@ -83,6 +93,8 @@ clean_trap() {
   echo "Restarting PHP services to restore the original state..."
   restart_service
   echo "Script interrupted or completed. Exiting cleanly."
+  trap - SIGINT SIGTERM EXIT
+  exit 0
 }
 GET_PHP() {
   local php
@@ -140,19 +152,11 @@ dl_extension() {
   url=$1
   filename="$(basename "$url")"
 
+  REMOVABLE+=("$filename")
+  TEMP_FILES+=("$filename")
   echo "Downloading: $filename"
   curl -s -L -O "$url"
-  TEMP_FILES+=("$filename")
-  REMOVABLE+=("$filename")
-}
-dir_so() {
-  local php=$1
-  "$php" -r 'echo PHP_EXTENSION_DIR;' | tr -d '\r\n'
-}
-dir_ini() {
-  local php
-  php=$1
-  $php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;' | tr -d '\r\n'
+  chmod 775 "$filename" >/dev/null 2>&1
 }
 restart_service() {
   local phpfpm
@@ -215,6 +219,9 @@ executable() {
     return 1
   fi
 }
+resolve_symlink() {
+  realpath -q "$1"
+}
 trap clean_trap SIGINT SIGTERM EXIT
 
 for dir in "${POSSIBLE_PATHS[@]}"; do
@@ -255,10 +262,18 @@ else
   done
 fi
 
-if [[ ${#ALL_PHP[@]} -gt 0 ]]; then
+REAL_PHP=()
+for __php in "${ALL_PHP[@]}"; do
+  __php=$(realpath -q "$__php")
+  if ! str_contains "${REAL_PHP[*]}" "$__php" && [[ ! -d $__php ]]; then
+    REAL_PHP+=("$__php")
+  fi
+done
+
+if [[ ${#REAL_PHP[@]} -gt 0 ]]; then
   echo "Found PHP versions to be installed:"
   echo "============================================"
-  for php in "${ALL_PHP[@]}"; do
+  for php in "${REAL_PHP[@]}"; do
     echo "$php"
   done
   echo "============================================"
@@ -268,7 +283,7 @@ if [[ ${#ALL_PHP[@]} -gt 0 ]]; then
   done
   if [[ $confirm == "yes" ]]; then
     echo "Installing phprfs extension..."
-    for php in "${ALL_PHP[@]}"; do
+    for php in "${REAL_PHP[@]}"; do
       install_extension "$php"
     done
   fi
