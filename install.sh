@@ -277,23 +277,22 @@ if [[ ${#REAL_PHP[@]} -gt 0 ]]; then
     echo "$php"
   done
   echo "============================================"
-  echo "Do you want to install phprfs extension for these PHP versions? (yes/no):"
-  while [ "$confirm" != "yes" ] && [ "$confirm" != "no" ]; do
-    read -r confirm
+  echo "HIT CTRL+C to cancel!!"
+  echo "============================================"
+  for ((i = 5; i > 0; i--)); do
+    printf "Installation started in %s" "$i"
   done
-  if [[ $confirm == "yes" ]]; then
-    echo "Installing phprfs extension..."
-    for php in "${REAL_PHP[@]}"; do
-      install_extension "$php"
-    done
-  fi
+
+  for php in "${REAL_PHP[@]}"; do
+    install_extension "$php"
+  done
 fi
 ####### End of Installation #######
-
-# If the script completes successfully, remove traps
-trap - SIGINT SIGTERM EXIT
-echo "Installation complete!"
 
 for _file in "${REMOVABLE[@]}"; do
   rm "$_file" -rf >/dev/null 2>&1
 done
+
+# If the script completes successfully, remove traps
+echo "Installation complete!"
+trap - SIGINT SIGTERM EXIT
