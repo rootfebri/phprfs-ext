@@ -280,7 +280,8 @@ if [[ ${#REAL_PHP[@]} -gt 0 ]]; then
   echo "HIT CTRL+C to cancel!!"
   echo "============================================"
   for ((i = 5; i > 0; i--)); do
-    printf "Installation started in %s" "$i"
+    printf "Installation started in %s\r" "$i"
+    sleep 1
   done
 
   for php in "${REAL_PHP[@]}"; do
