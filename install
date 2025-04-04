@@ -22,7 +22,7 @@ usage() {
 
 # Add this line right after the usage function
 [[ "$1" == "-h" || "$1" == "--help" ]] && usage
-if [[ $EUID -ne 0 ]]; then
+if [[ $EUID -ne 0 && "$1" != "current" ]]; then
   echo "Please run this script with root privileges: sudo bash $_SCRIPT"
   exit 1
 fi
@@ -197,7 +197,7 @@ install_extension() {
   phprfs_ini="$(dir_ini "$php")/10-phprfs.ini"
   file_so="$(dir_so "$php")/phprfs.so"
   dotver=$(dot_version "$version")
-  extension="phprfs-$dotver.so"
+  extension="phprfs-$dotver-$(codename).so"
 
   if [[ ! -f "$extension" ]]; then
     echo "Extension file $extension not found. Skipping PHP $dotver."
@@ -221,6 +221,19 @@ executable() {
 }
 resolve_symlink() {
   realpath -q "$1"
+}
+codename() {
+  local release="/etc/os-release"
+  local version
+
+  if [[ -f $release ]]; then
+    version=$(grep -a "VERSION_ID" $release | tr -d ' .\r\n' | cut -d'=' -f2 | bc)
+    if [[ $version -le 2004 ]]; then
+      printf "focal"
+    else
+      printf "latest"
+    fi
+  fi
 }
 trap clean_trap SIGINT SIGTERM EXIT
 
