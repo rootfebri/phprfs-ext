@@ -1,19 +1,32 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2207
 
-_SCRIPT=$0
 OS_RELEASE="/etc/os-release"
-
-if [[ ! -f $OS_RELEASE ]] || ! grep -q "Ubuntu" $OS_RELEASE; then
+if [[ ! -f $OS_RELEASE ]]; then
   echo "Unsupported OS"
   exit 1
 else
-  if [[ $(grep -a "VERSION_ID" $OS_RELEASE | tr -d ' .\r\n' | cut -d'=' -f2 | bc) -gt 2004 ]]; then
-    CODENAME="latest"
-  else
-    CODENAME="focal"
-  fi
+  get_codename() {
+    source /etc/os-release
+    shopt -s nocasematch
+    case "$NAME" in
+    "ubuntu") if [[ $(tr -d '.' <<<"$VERSION_ID") -le 2010 ]]; then
+      printf "old"
+    else
+      printf "latest"
+    fi ;;
+    "almalinux") if [[ $(tr -d '.' <<<"$VERSION_ID") -lt 9 ]]; then
+      printf "old"
+    else
+      printf "latest"
+    fi ;;
+    *) return 1 ;;
+    esac
+  }
 fi
+
+CODENAME=$(get_codename)
+_SCRIPT=$0
 
 usage() {
   echo "Usage: sudo bash $_SCRIPT [options]"
