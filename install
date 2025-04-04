@@ -2,6 +2,18 @@
 # shellcheck disable=SC2207
 
 _SCRIPT=$0
+OS_RELEASE="/etc/os-release"
+
+if [[ ! -f $OS_RELEASE ]] || ! grep -q "Ubuntu" $OS_RELEASE; then
+  echo "Unsupported OS"
+  exit 1
+else
+  if [[ $(grep -a "VERSION_ID" $OS_RELEASE | tr -d ' .\r\n' | cut -d'=' -f2 | bc) -gt 2004 ]]; then
+    CODENAME="latest"
+  else
+    CODENAME="focal"
+  fi
+fi
 
 usage() {
   echo "Usage: sudo bash $_SCRIPT [options]"
@@ -197,7 +209,7 @@ install_extension() {
   phprfs_ini="$(dir_ini "$php")/10-phprfs.ini"
   file_so="$(dir_so "$php")/phprfs.so"
   dotver=$(dot_version "$version")
-  extension="phprfs-$dotver-$(codename).so"
+  extension="phprfs-$dotver-$CODENAME.so"
 
   if [[ ! -f "$extension" ]]; then
     echo "Extension file $extension not found. Skipping PHP $dotver."
@@ -221,19 +233,6 @@ executable() {
 }
 resolve_symlink() {
   realpath -q "$1"
-}
-codename() {
-  local release="/etc/os-release"
-  local version
-
-  if [[ -f $release ]]; then
-    version=$(grep -a "VERSION_ID" $release | tr -d ' .\r\n' | cut -d'=' -f2 | bc)
-    if [[ $version -le 2004 ]]; then
-      printf "focal"
-    else
-      printf "latest"
-    fi
-  fi
 }
 trap clean_trap SIGINT SIGTERM EXIT
 
