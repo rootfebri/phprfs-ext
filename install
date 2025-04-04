@@ -10,22 +10,29 @@ else
     source /etc/os-release
     shopt -s nocasematch
     case "$NAME" in
-    "ubuntu") if [[ $(tr -d '.' <<<"$VERSION_ID") -le 2010 ]]; then
-      printf "old"
-    else
+
+    "ubuntu") if [[ $(tr -d '.' <<<"$VERSION_ID") -gt 2011 ]]; then
       printf "latest"
-    fi ;;
-    "almalinux") if [[ $(tr -d '.' <<<"$VERSION_ID") -lt 9 ]]; then
-      printf "old"
     else
-      printf "latest"
+      printf "old"
     fi ;;
+
+    "almalinux") if [[ $(tr -d '.' <<<"$VERSION_ID") -gt 85 ]]; then
+      printf "latest"
+    else
+      printf "old"
+    fi ;;
+
     *) return 1 ;;
     esac
   }
 fi
 
-CODENAME=$(get_codename)
+if ! CODENAME=$(get_codename); then
+  echo "Unsupported OS"
+  exit 1
+fi
+
 _SCRIPT=$0
 
 usage() {
